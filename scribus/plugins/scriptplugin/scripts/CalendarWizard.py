@@ -219,6 +219,8 @@ class ScCalendar:
         self.pStyleWeekday = "Weekday"
         self.pStyleMonth = "Month"
         self.pStyleWeekNo = "WeekNo"
+        self.pStyleMiniCal = "MiniCal Para"
+        # self.cStyleMiniCal = "MiniCal Char"
         self.masterPage = "Weekdays"
         self.sepMonths = sepMonths
         # settings
@@ -260,6 +262,9 @@ class ScCalendar:
 #        createParagraphStyle(name=self.pStyleWeekday, alignment=ALIGN_RIGHT) # original alignment
         createParagraphStyle(name=self.pStyleMonth)
         createParagraphStyle(name=self.pStyleWeekNo, alignment=ALIGN_RIGHT)
+        createParagraphStyle(name=self.pStyleMiniCal, alignment=ALIGN_CENTERED)
+        # createCharStyle     (name=self.cStyleMiniCal, fontSize=7.0)
+        # createCharStyle     (name=self.cStyleMiniCal)
         originalUnit = getUnit()
         setUnit(UNIT_POINTS)
         self.setupDocVariables()
@@ -475,6 +480,8 @@ class ScClassicCalendar(ScVerticalCalendar):
         """ Create a page and draw one month calendar on it """
         self.createLayout()
         self.createHeader(localization[self.lang][0][month])
+        self.createMiniCalendar(month,cal
+                                ,self.marginl+self.colSize,self.margint,self.colSize,self.rowSize*1.5)
         rowCnt = 2
         for week in cal:
             colCnt = 0
@@ -495,6 +502,34 @@ class ScClassicCalendar(ScVerticalCalendar):
                 if day.month == month + 1:
 					setText(str(day.day), cel)
 					setStyle(self.pStyleDate, cel)
+            rowCnt += 1
+
+    def createMiniCalendar(self, month, cal,x,y,w,h):
+        """ Create a mini one month calendar on """
+        #self.createHeader(localization[self.lang][0][month])
+        colWidth = w / 7
+        rowHeight = h / 8
+        # colWidth = w
+        # rowHeight = h
+        header = createText(x, y, w, rowHeight)
+        setText(localization[self.lang][0][month], header)
+        setStyle(self.pStyleMiniCal, header)
+        # setStyle(self.cStyleMiniCal, header)
+
+        rowCnt = 2
+        for week in cal:
+            colCnt = 0
+            for day in week:
+                cel = createText(x + colCnt * colWidth,
+                                 y + rowCnt * rowHeight,
+                                 colWidth, rowHeight)
+
+		#setLineColor("Black", cel)  # comment this out if you do not want border to cells
+                colCnt += 1
+                if day.month == month + 1:
+					setText(str(day.day), cel)
+					setStyle(self.pStyleMiniCal, cel)
+					# setStyle(self.cStyleMiniCal, cel)
             rowCnt += 1
 
 class ScVerticalEventCalendar(ScVerticalCalendar, ScEventCalendar):
