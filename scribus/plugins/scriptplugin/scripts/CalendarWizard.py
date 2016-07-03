@@ -198,10 +198,11 @@ from math import sqrt
 class ScCalendar:
     """ Parent class for all calendar types """
 
-    def __init__(self, year, months=[], firstDay=calendar.SUNDAY, drawSauce=True, sepMonths='/', lang='English'):
+    def __init__(self, year, months=[], firstDay=calendar.SUNDAY, drawSauce=True, wholePage=False, sepMonths='/', lang='English'):
         """ Setup basic things """
         # params
         self.drawSauce = drawSauce # draw supplementary image?
+        self.wholePage = wholePage # Do not leave space for an image
         self.year = year
         self.months = months
         self.lang = lang
@@ -297,8 +298,8 @@ class ScEventCalendar(ScCalendar):
     """ Parent class for event
         (horizontal event, vertical event) calendar types """
 
-    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, sepMonths='/', lang='English'):
-        ScCalendar.__init__(self, year, months, firstDay, drawSauce, sepMonths, lang)
+    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, wholePage=False, sepMonths='/', lang='English'):
+        ScCalendar.__init__(self, year, months, firstDay, drawSauce, wholePage, sepMonths, lang)
 
     def printMonth(self, cal, month, week):
 	    """ Print the month name(s) """
@@ -330,8 +331,8 @@ class ScHorizontalEventCalendar(ScEventCalendar):
     """ One day = one row calendar. I suggest LANDSCAPE orientation.\
         One week per page."""
 
-    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, sepMonths='/', lang='English'):
-        ScEventCalendar.__init__(self, year, months, firstDay, drawSauce, sepMonths, lang)
+    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, wholePage=False, sepMonths='/', lang='English'):
+        ScEventCalendar.__init__(self, year, months, firstDay, drawSauce, wholePage, sepMonths, lang)
 
     def setupDocVariables(self):
         """ Compute base metrics here. Page layout is bordered by margins and
@@ -378,8 +379,8 @@ class ScVerticalCalendar(ScCalendar):
     """ Parent class for vertical
         (classic, vertical event) calendar types """
 
-    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, sepMonths='/', lang='English'):
-        ScCalendar.__init__(self, year, months, firstDay, drawSauce, sepMonths, lang)
+    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, wholePage=False, sepMonths='/', lang='English'):
+        ScCalendar.__init__(self, year, months, firstDay, drawSauce, wholePage, sepMonths, lang)
 
     def setupDocVariables(self):
         """ Compute base metrics here. Page layout is bordered by margins and
@@ -387,11 +388,17 @@ class ScVerticalCalendar(ScCalendar):
         in the bottom part - top is occupied with empty image frame. """
         # gloden mean
         ScCalendar.setupDocVariables(self)
-        self.gmean = self.height - self.goldenMean(self.height) + self.margint
+        if self.wholePage:
+            self.gmean = self.height
+        else:
+            self.gmean = self.height - self.goldenMean(self.height) + self.margint
         # calendar size
         self.calHeight = self.height - self.gmean + self.margint
         # rows and cols
-        self.rowSize = self.gmean / 8
+        if self.wholePage:
+            self.rowSize = self.gmean / 7
+        else:
+            self.rowSize = self.gmean / 8
         self.colSize = self.width / 7
 
     def setupMasterPage(self):
@@ -399,14 +406,50 @@ class ScVerticalCalendar(ScCalendar):
         createMasterPage(self.masterPage)
         editMasterPage(self.masterPage)
         setActiveLayer(self.layerCal)
+        if self.wholePage:
+            vd = self.colSize / 8.0
+            rs = self.rowSize * 1.5
+            rh = self.rowSize * 0.5
+        else:
+            vd = 0
+            rs = self.rowSize
+            rh = self.rowSize
         rowCnt = 0
         for j in self.dayOrder: # days
             cel = createText(self.marginl + rowCnt*self.colSize,
-                             self.calHeight + self.rowSize,
-                             self.colSize, self.rowSize)
+                             self.calHeight + rs,
+                             self.colSize, rh)
+            setLineColor("Black", cel)  # comment this out if you do not want border to cells
+            setTextDistances(0,0,vd,0,cel)
             setText(j, cel)
             setStyle(self.pStyleWeekday, cel)
             rowCnt+=1
+        if self.wholePage:
+            cal = self.mycal.monthdatescalendar(self.year, 3)
+            rowCnt = 2
+            for week in cal:
+                colCnt = 0
+                for day in week:
+                    cel = createText(self.marginl + colCnt * self.colSize,
+                                     self.calHeight + rowCnt * self.rowSize,
+                                     self.colSize, self.rowSize)
+
+                    setLineColor("Black", cel)  # comment this out if you do not want border to cells
+                    colCnt += 1
+                    # if day.month == month + 1:
+                    #                         setText(str(day.day), cel)
+                    #                         setStyle(self.pStyleDate, cel)
+                rowCnt += 1
+
+# setTextDistances(...)
+# setTextDistances(left, right, top, bottom, ["name"])
+
+# Sets the text distances of the text frame "name" to the values "left" "right",
+# "top" and "bottom". If "name" is not given the currently selected item is
+# used.
+
+# May throw ValueError if any of the distances are out of bounds (must be positive).
+
         closeMasterPage()
 
     def createHeader(self, monthName):
@@ -425,8 +468,8 @@ class ScClassicCalendar(ScVerticalCalendar):
     """ Calendar matrix creator itself. I suggest PORTRAIT orientation.
         One month per page."""
 
-    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, sepMonths='/', lang='English'):
-        ScVerticalCalendar.__init__(self, year, months, firstDay, drawSauce, sepMonths, lang)
+    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, wholePage=False, sepMonths='/', lang='English'):
+        ScVerticalCalendar.__init__(self, year, months, firstDay, drawSauce, wholePage, sepMonths, lang)
 
     def createMonthCalendar(self, month, cal):
         """ Create a page and draw one month calendar on it """
@@ -436,10 +479,18 @@ class ScClassicCalendar(ScVerticalCalendar):
         for week in cal:
             colCnt = 0
             for day in week:
+                if self.wholePage:
+                    hd = self.rowSize / 8.0
+                    vd = self.colSize / 8.0
+                else:
+                    hd = 0
+                    vd = 0
                 cel = createText(self.marginl + colCnt * self.colSize,
                                  self.calHeight + rowCnt * self.rowSize,
                                  self.colSize, self.rowSize)
-		setLineColor("Black", cel)  # comment this out if you do not want border to cells
+
+                setTextDistances(0,hd,vd,0,cel)
+		#setLineColor("Black", cel)  # comment this out if you do not want border to cells
                 colCnt += 1
                 if day.month == month + 1:
 					setText(str(day.day), cel)
@@ -450,9 +501,9 @@ class ScVerticalEventCalendar(ScVerticalCalendar, ScEventCalendar):
     """ One day = one column calendar. I suggest LANDSCAPE orientation.\
         One week per page."""
 
-    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, sepMonths='/', lang='English'):
-        ScVerticalCalendar.__init__(self, year, months, firstDay, drawSauce, sepMonths, lang)
-        ScEventCalendar.__init__(self, year, months, firstDay, drawSauce, sepMonths, lang)
+    def __init__(self, year, months = [], firstDay = calendar.SUNDAY, drawSauce=True, wholePage=False, sepMonths='/', lang='English'):
+        ScVerticalCalendar.__init__(self, year, months, firstDay, drawSauce, wholePage, sepMonths, lang)
+        ScEventCalendar.__init__(self, year, months, firstDay, drawSauce, wholePage, sepMonths, lang)
 
     def printDay(self, j):
         """ Print a given day """
@@ -530,6 +581,10 @@ class TkCalendar(Frame):
         self.imageLabel = Label(self, text='Draw Image Frame:')
         self.imageVar = IntVar()
         self.imageCheck = Checkbutton(self, variable=self.imageVar)
+        # whole page?
+        self.wpLabel = Label(self, text='No image,use whole page:')
+        self.wpVar = IntVar()
+        self.wpCheck = Checkbutton(self, variable=self.wpVar)
         # Months separator
         self.sepMonthsLabel = Label(self, text='Months separator:')
         self.sepMonthsVar = StringVar()
@@ -540,9 +595,10 @@ class TkCalendar(Frame):
         # setup values
         self.weekMondayRadio.select()
         self.typeClRadio.select()
-        self.yearVar.set(str(datetime.date(1, 1, 1).today().year))
+        self.yearVar.set(str(datetime.date(1, 1, 1).today().year + 1))
         self.sepMonthsVar.set('/')
         self.imageCheck.select()
+        #self.wpCheck.select()
         # make layout
         self.columnconfigure(0, pad=6)
         currRow = 0
@@ -551,10 +607,10 @@ class TkCalendar(Frame):
         self.langLabel.grid(column=0, row=currRow, sticky=W)
         self.monthLabel.grid(column=3, row=currRow, sticky=W)
         currRow += 1
-        self.langFrame.grid(column=0, row=currRow, rowspan=6, sticky=N)
+        self.langFrame.grid(column=0, row=currRow, rowspan=7, sticky=N)
         self.typeLabel.grid(column=1, row=currRow, sticky=E)
         self.typeClRadio.grid(column=2, row=currRow, sticky=W)
-        self.monthListbox.grid(column=3, row=currRow, rowspan=8)
+        self.monthListbox.grid(column=3, row=currRow, rowspan=9)
         currRow += 1
         self.typeEvRadio.grid(column=2, row=currRow, sticky=W)
         currRow += 1
@@ -573,6 +629,10 @@ class TkCalendar(Frame):
         currRow += 1
         self.imageLabel.grid(column=1, row=currRow, sticky=N+E)
         self.imageCheck.grid(column=2, row=currRow, sticky=N+W)
+        currRow += 1
+        self.wpLabel.   grid(column=1, row=currRow, sticky=N+E)
+        self.wpCheck.   grid(column=2, row=currRow, sticky=N+W)
+        currRow += 1
         self.langButton.grid(column=0, row=currRow)
         currRow += 1
         self.sepMonthsLabel.grid(column=1, row=currRow, sticky=N+E)
@@ -634,13 +694,18 @@ class TkCalendar(Frame):
             draw = False
         else:
             draw = True
+        # Skip image and use whole page?
+        if self.wpVar.get() == 0:
+            wholePage = False
+        else:
+            wholePage = True
         # create calendar (finally)
         if self.typeVar.get() == 0:
-            cal = ScClassicCalendar(year, months, self.weekVar.get(), draw, self.sepMonthsVar.get(), self.key)
+            cal = ScClassicCalendar(year, months, self.weekVar.get(), draw, wholePage, self.sepMonthsVar.get(), self.key)
         elif self.typeVar.get() == 1:
-            cal = ScHorizontalEventCalendar(year, months, self.weekVar.get(), draw, self.sepMonthsVar.get(), self.key)
+            cal = ScHorizontalEventCalendar(year, months, self.weekVar.get(), draw, wholePage, self.sepMonthsVar.get(), self.key)
         else:
-            cal = ScVerticalEventCalendar(year, months, self.weekVar.get(), draw, self.sepMonthsVar.get(), self.key)
+            cal = ScVerticalEventCalendar(year, months, self.weekVar.get(), draw, wholePage, self.sepMonthsVar.get(), self.key)
         self.master.withdraw()
         err = cal.createCalendar()
         if err != None:
