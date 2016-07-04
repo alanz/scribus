@@ -286,7 +286,7 @@ class ScCalendar:
 
     def createLayout(self):
         """ Create the page and optional bells and whistles around """
-        if self.wholePage:
+        if self.wholePage and self.drawSauce:
             self.createImagePage()
             setActiveLayer(self.layerImg)
             createImage(self.marginl, self.margint, self.width, self.height)
@@ -713,7 +713,7 @@ class TkCalendar(Frame):
         self.imageVar = IntVar()
         self.imageCheck = Checkbutton(self, variable=self.imageVar)
         # whole page?
-        self.wpLabel = Label(self, text='No image,use whole page:')
+        self.wpLabel = Label(self, text='Use whole page (landscape):')
         self.wpVar = IntVar()
         self.wpCheck = Checkbutton(self, variable=self.wpVar)
         # Months separator
