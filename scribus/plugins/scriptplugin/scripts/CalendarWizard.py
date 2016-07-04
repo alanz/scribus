@@ -480,8 +480,26 @@ class ScClassicCalendar(ScVerticalCalendar):
         """ Create a page and draw one month calendar on it """
         self.createLayout()
         self.createHeader(localization[self.lang][0][month])
-        self.createMiniCalendar(month,cal
-                                ,self.marginl+self.colSize,self.margint,self.colSize,self.rowSize*1.5)
+        if self.wholePage:
+            if month == 0:
+                priorMonth = 11
+                priorCal = self.mycal.monthdatescalendar(self.year-1, 12)
+                nextMonth = 1
+                nextCal  = self.mycal.monthdatescalendar(self.year, 2)
+            elif month == 11:
+                priorMonth = 10
+                priorCal = self.mycal.monthdatescalendar(self.year, month)
+                nextMonth = 0
+                nextCal  = self.mycal.monthdatescalendar(self.year+1, 1)
+            else:
+                priorMonth = month - 1
+                priorCal = self.mycal.monthdatescalendar(self.year, month)
+                nextMonth = month + 1
+                nextCal  = self.mycal.monthdatescalendar(self.year, month+2)
+            self.createMiniCalendar(priorMonth,priorCal
+                                    ,self.marginl+self.colSize,self.margint,self.colSize,self.rowSize*1.5)
+            self.createMiniCalendar(nextMonth,nextCal
+                                    ,self.marginl+2*self.colSize,self.margint,self.colSize,self.rowSize*1.5)
         rowCnt = 2
         for week in cal:
             colCnt = 0
@@ -515,6 +533,16 @@ class ScClassicCalendar(ScVerticalCalendar):
         setText(localization[self.lang][0][month], header)
         setStyle(self.pStyleMiniCal, header)
         # setStyle(self.cStyleMiniCal, header)
+
+        # Add day legend
+        days = ["M","T","W","T","F","S","S"]
+        rowCnt = 1
+        for day in range(7):
+            cel = createText(x + day * colWidth,
+                             y + rowCnt * rowHeight,
+                             colWidth, rowHeight)
+            setText(days[day], cel)
+            setStyle(self.pStyleDate, cel)
 
         rowCnt = 2
         for week in cal:
