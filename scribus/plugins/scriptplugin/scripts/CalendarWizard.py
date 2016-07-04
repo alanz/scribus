@@ -217,11 +217,11 @@ class ScCalendar:
         self.layerCal = 'Calendar'
         self.pStyleDate = "Date" # paragraph styles
         self.pStyleWeekday = "Weekday"
+        self.pStyleYear = "Year"
         self.pStyleMonth = "Month"
         self.pStyleWeekNo = "WeekNo"
-        self.pStyleMiniCal = "MiniCal Para"
-        # self.cStyleMiniCal = "MiniCal Char"
-        self.masterPage = "Weekdays"
+        self.pStyleMiniCal = "MiniCal"
+        self.masterPage = "CalendarBackground"
         self.sepMonths = sepMonths
         # settings
         self.firstPage = True # create only 2nd 3rd ... pages. No 1st one.
@@ -260,11 +260,10 @@ class ScCalendar:
         createParagraphStyle(name=self.pStyleDate, alignment=ALIGN_RIGHT)
         createParagraphStyle(name=self.pStyleWeekday, alignment=ALIGN_CENTERED)
 #        createParagraphStyle(name=self.pStyleWeekday, alignment=ALIGN_RIGHT) # original alignment
+        createParagraphStyle(name=self.pStyleYear)
         createParagraphStyle(name=self.pStyleMonth)
         createParagraphStyle(name=self.pStyleWeekNo, alignment=ALIGN_RIGHT)
         createParagraphStyle(name=self.pStyleMiniCal, alignment=ALIGN_CENTERED)
-        # createCharStyle     (name=self.cStyleMiniCal, fontSize=7.0)
-        # createCharStyle     (name=self.cStyleMiniCal)
         originalUnit = getUnit()
         setUnit(UNIT_POINTS)
         self.setupDocVariables()
@@ -405,6 +404,13 @@ class ScVerticalCalendar(ScCalendar):
         else:
             self.rowSize = self.gmean / 8
         self.colSize = self.width / 7
+        if self.wholePage:
+            self.miniCalPriorX = self.marginl+self.colSize
+            self.miniCalPriorY = self.margint
+            self.miniCalNextX = self.marginl+2.5*self.colSize
+            self.miniCalNextY = self.margint
+            self.miniCalWidth = self.colSize
+            self.miniCalHeight = self.rowSize*1.5
 
     def setupMasterPage(self):
         """ Draw invariant calendar header: Days of the week """
@@ -430,6 +436,16 @@ class ScVerticalCalendar(ScCalendar):
             setStyle(self.pStyleWeekday, cel)
             rowCnt+=1
         if self.wholePage:
+            header = createText(self.marginl+6*self.colSize, self.calHeight, self.colSize, self.rowSize)
+            setText(str(self.year), header)
+            setStyle(self.pStyleYear, header)
+            setFillColor("Red", header)
+            setFillShade(10, header)
+
+            # minical bounding boxes
+            self.createMiniCalBox(self.miniCalPriorX,self.miniCalPriorY,self.miniCalWidth,self.miniCalHeight)
+            self.createMiniCalBox(self.miniCalNextX ,self.miniCalNextY ,self.miniCalWidth,self.miniCalHeight)
+
             cal = self.mycal.monthdatescalendar(self.year, 3)
             rowCnt = 2
             for week in cal:
@@ -457,6 +473,12 @@ class ScVerticalCalendar(ScCalendar):
 
         closeMasterPage()
 
+    def createMiniCalBox(self,x,y,w,h):
+        """ Draw a shaded background for the mini calendars"""
+        header = createText(x,y,w,h)
+        setFillColor("Black", header)
+        setFillShade(10, header)
+
     def createHeader(self, monthName):
         """ Draw calendar header: Month name """
         header = createText(self.marginl, self.calHeight, self.width, self.rowSize)
@@ -483,23 +505,29 @@ class ScClassicCalendar(ScVerticalCalendar):
         if self.wholePage:
             if month == 0:
                 priorMonth = 11
+                priorYear = self.year-1
                 priorCal = self.mycal.monthdatescalendar(self.year-1, 12)
                 nextMonth = 1
+                nextYear = self.year
                 nextCal  = self.mycal.monthdatescalendar(self.year, 2)
             elif month == 11:
                 priorMonth = 10
+                priorYear = self.year
                 priorCal = self.mycal.monthdatescalendar(self.year, month)
                 nextMonth = 0
+                nextYear = self.year + 1
                 nextCal  = self.mycal.monthdatescalendar(self.year+1, 1)
             else:
                 priorMonth = month - 1
+                priorYear = self.year
                 priorCal = self.mycal.monthdatescalendar(self.year, month)
                 nextMonth = month + 1
+                nextYear = self.year
                 nextCal  = self.mycal.monthdatescalendar(self.year, month+2)
-            self.createMiniCalendar(priorMonth,priorCal
-                                    ,self.marginl+self.colSize,self.margint,self.colSize,self.rowSize*1.5)
-            self.createMiniCalendar(nextMonth,nextCal
-                                    ,self.marginl+2*self.colSize,self.margint,self.colSize,self.rowSize*1.5)
+            self.createMiniCalendar(priorMonth,priorYear,priorCal
+                                    ,self.miniCalPriorX,self.miniCalPriorY,self.miniCalWidth,self.miniCalHeight)
+            self.createMiniCalendar(nextMonth,nextYear,nextCal
+                                    ,self.miniCalNextX,self.miniCalNextY,self.miniCalWidth,self.miniCalHeight)
         rowCnt = 2
         for week in cal:
             colCnt = 0
@@ -522,7 +550,7 @@ class ScClassicCalendar(ScVerticalCalendar):
 					setStyle(self.pStyleDate, cel)
             rowCnt += 1
 
-    def createMiniCalendar(self, month, cal,x,y,w,h):
+    def createMiniCalendar(self, month, year, cal,x,y,w,h):
         """ Create a mini one month calendar on """
         #self.createHeader(localization[self.lang][0][month])
         colWidth = w / 7
@@ -530,9 +558,8 @@ class ScClassicCalendar(ScVerticalCalendar):
         # colWidth = w
         # rowHeight = h
         header = createText(x, y, w, rowHeight)
-        setText(localization[self.lang][0][month], header)
+        setText(localization[self.lang][0][month] + " " + str(year), header)
         setStyle(self.pStyleMiniCal, header)
-        # setStyle(self.cStyleMiniCal, header)
 
         # Add day legend
         days = ["M","T","W","T","F","S","S"]
@@ -557,7 +584,6 @@ class ScClassicCalendar(ScVerticalCalendar):
                 if day.month == month + 1:
 					setText(str(day.day), cel)
 					setStyle(self.pStyleMiniCal, cel)
-					# setStyle(self.cStyleMiniCal, cel)
             rowCnt += 1
 
 class ScVerticalEventCalendar(ScVerticalCalendar, ScEventCalendar):
