@@ -225,6 +225,7 @@ class ScCalendar:
         self.pStyleWeekNo = "WeekNo"
         self.pStyleMiniCal = "MiniCal"
         self.masterPage = "CalendarBackground"
+        self.masterPageImage = "Image"
         self.sepMonths = sepMonths
         # settings
         self.firstPage = True # create only 2nd 3rd ... pages. No 1st one.
@@ -270,7 +271,7 @@ class ScCalendar:
         originalUnit = getUnit()
         setUnit(UNIT_POINTS)
         self.setupDocVariables()
-        if self.drawSauce:
+        if self.drawSauce or self.wholePage:
             createLayer(self.layerImg)
         createLayer(self.layerCal)
         self.setupMasterPage()
@@ -285,6 +286,10 @@ class ScCalendar:
 
     def createLayout(self):
         """ Create the page and optional bells and whistles around """
+        if self.wholePage:
+            self.createImagePage()
+            setActiveLayer(self.layerImg)
+            createImage(self.marginl, self.margint, self.width, self.height)
         self.createPage()
         if self.drawSauce:
             setActiveLayer(self.layerImg)
@@ -300,6 +305,16 @@ class ScCalendar:
             gotoPage(1)
             return
         newPage(-1, self.masterPage)
+
+    def createImagePage(self):
+        """ Wrapper to the new page with layers """
+        if self.firstPage:
+            self.firstPage = False
+            newPage(-1, self.masterPageImage) # create a new page using the masterPage
+            deletePage(1) # now it's safe to delete the first page
+            gotoPage(1)
+            return
+        newPage(-1, self.masterPageImage)
 
 class ScEventCalendar(ScCalendar):
     """ Parent class for event
@@ -417,6 +432,9 @@ class ScVerticalCalendar(ScCalendar):
 
     def setupMasterPage(self):
         """ Draw invariant calendar header: Days of the week """
+        if self.wholePage:
+            createMasterPage(self.masterPageImage)
+            closeMasterPage()
         createMasterPage(self.masterPage)
         editMasterPage(self.masterPage)
         setActiveLayer(self.layerCal)
