@@ -209,9 +209,12 @@ class ScCalendar:
         # day order
         self.dayOrder = localization[self.lang][1]
         if firstDay == calendar.SUNDAY:
+            self.firstDaySun = True
             dl = self.dayOrder[:6]
             dl.insert(0, self.dayOrder[6])
             self.dayOrder = dl
+        else:
+            self.firstDaySun = False
         self.mycal = calendar.Calendar(firstDay)
         self.layerImg = 'Calendar image'
         self.layerCal = 'Calendar'
@@ -405,12 +408,12 @@ class ScVerticalCalendar(ScCalendar):
             self.rowSize = self.gmean / 8
         self.colSize = self.width / 7
         if self.wholePage:
-            self.miniCalPriorX = self.marginl+self.colSize
+            self.miniCalPriorX = self.marginl+4.8*self.colSize
             self.miniCalPriorY = self.margint
-            self.miniCalNextX = self.marginl+2.5*self.colSize
+            self.miniCalNextX = self.marginl+6.0*self.colSize
             self.miniCalNextY = self.margint
             self.miniCalWidth = self.colSize
-            self.miniCalHeight = self.rowSize*1.5
+            self.miniCalHeight = self.rowSize*1.45
 
     def setupMasterPage(self):
         """ Draw invariant calendar header: Days of the week """
@@ -425,22 +428,29 @@ class ScVerticalCalendar(ScCalendar):
             vd = 0
             rs = self.rowSize
             rh = self.rowSize
-        rowCnt = 0
+        colCnt = 0
         for j in self.dayOrder: # days
-            cel = createText(self.marginl + rowCnt*self.colSize,
+            cel = createText(self.marginl + colCnt*self.colSize,
                              self.calHeight + rs,
                              self.colSize, rh)
             setLineColor("Black", cel)  # comment this out if you do not want border to cells
             setTextDistances(0,0,vd,0,cel)
             setText(j, cel)
             setStyle(self.pStyleWeekday, cel)
-            rowCnt+=1
+            if ((self.wholePage and self.firstDaySun       and colCnt == 0) or
+                (self.wholePage and (not self.firstDaySun) and colCnt == 6)):
+              setFillColor("Red", cel)
+              setFillShade(10, cel)
+            colCnt+=1
         if self.wholePage:
-            header = createText(self.marginl+6*self.colSize, self.calHeight, self.colSize, self.rowSize)
+            # header = createText(self.marginl+6*self.colSize, self.calHeight, self.colSize, self.rowSize)
+            header = createText(self.marginl+0*self.colSize, self.calHeight, self.colSize, 1.5*self.rowSize)
             setText(str(self.year), header)
             setStyle(self.pStyleYear, header)
             setFillColor("Red", header)
             setFillShade(10, header)
+            vd = self.colSize / 5.5
+            setTextDistances(0,0,vd,0,header)
 
             # minical bounding boxes
             self.createMiniCalBox(self.miniCalPriorX,self.miniCalPriorY,self.miniCalWidth,self.miniCalHeight)
@@ -456,6 +466,10 @@ class ScVerticalCalendar(ScCalendar):
                                      self.colSize, self.rowSize)
 
                     setLineColor("Black", cel)  # comment this out if you do not want border to cells
+                    if ((self.wholePage and self.firstDaySun       and colCnt == 0) or
+                        (self.wholePage and (not self.firstDaySun) and colCnt == 6)):
+                      setFillColor("Red", cel)
+                      setFillShade(10, cel)
                     colCnt += 1
                     # if day.month == month + 1:
                     #                         setText(str(day.day), cel)
@@ -481,9 +495,16 @@ class ScVerticalCalendar(ScCalendar):
 
     def createHeader(self, monthName):
         """ Draw calendar header: Month name """
-        header = createText(self.marginl, self.calHeight, self.width, self.rowSize)
+        if self.wholePage:
+            header = createText(self.marginl + 1.0 * self.colSize, self.calHeight, 2.0*self.colSize, self.rowSize)
+            vd = self.colSize / 5.5
+            # header = createText(self.marginl, self.calHeight, self.width, self.rowSize)
+        else:
+            header = createText(self.marginl, self.calHeight, self.width, self.rowSize)
+            vd = 0
         setText(monthName, header)
         setStyle(self.pStyleMonth, header)
+        setTextDistances(0,0,vd,0,header)
 
     def createImage(self):
         """ Wrapper for everytime-the-same image frame. """
@@ -562,7 +583,10 @@ class ScClassicCalendar(ScVerticalCalendar):
         setStyle(self.pStyleMiniCal, header)
 
         # Add day legend
-        days = ["M","T","W","T","F","S","S"]
+        if self.firstDaySun:
+            days = ["S","M","T","W","T","F","S"]
+        else:
+            days = ["M","T","W","T","F","S","S"]
         rowCnt = 1
         for day in range(7):
             cel = createText(x + day * colWidth,
