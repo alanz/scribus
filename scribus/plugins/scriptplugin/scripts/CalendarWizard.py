@@ -572,8 +572,8 @@ class ScClassicCalendar(ScVerticalCalendar):
             colCnt = 0
             for day in week:
                 if self.wholePage:
-                    hd = self.rowSize / 8.0
-                    vd = self.colSize / 8.0
+                    hd = self.rowSize / 16.0
+                    vd = self.colSize / 20.0
                 else:
                     hd = 0
                     vd = 0
